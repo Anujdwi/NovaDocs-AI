@@ -1,0 +1,12 @@
+Django>=4.2
+djangorestframework
+dj-database-url
+python-dotenv
+psycopg2-binary
+mongoengine
+requests
+azure-ai-openai
+chromadb
+faiss-cpu
+pypdf2
+gunicorn
