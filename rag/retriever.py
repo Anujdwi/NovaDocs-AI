@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
-
+from llm_client import get_answer_from_documents
 
 MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
 
@@ -57,5 +57,9 @@ if __name__ == '__main__':
         res = search(args.query, index_file=args.index, meta_file=args.db, top_k=args.top_k)
         import json
         print(json.dumps({'answer': 'See sources', 'confidence': 'medium', 'sources': res}, indent=2))
+        print("\n\n")
+        ans = get_answer_from_documents(args.query, json.dumps(res))
+        print(f"Answer from LLM: {ans}")
+
     except FileNotFoundError as e:
         print(f"Error: {e}\nMake sure you specify the correct --index and --db file paths. If you used batch_indexer.py, the default metadata file is 'metadata.pkl'.")
