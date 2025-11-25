@@ -1,0 +1,86 @@
+Anuj Dwivedi
+ +91 7860606456 # anujdwivedi00719@gmail.com
+
+ï LinkedIn
+
+§ Github
+
+Education
+Ramaiah Institute of Technology
+B.E in Artificial Intelligence & and Machine Learning
+
+2021 - 2025
+7.63/10 CGPA
+
+Work Experience
+MotionCut
+
+October 2023 - November 2023
+Python Intern
+Remote
+• Designed a dynamic web-based Weather Application using the OpenWeatherMap API and implemented in Python
+that serves in 50+ locations. Applied error-handling techniques for smooth functionality.
+• Analyzed web scraping techniques, particularly employing the Beautiful Soup library in Python, to extract valuable
+data from various websites. Navigated HTML structures, parsing content, and extracting information from 150+ sources
+and a total of 25000+ fields relevant to project requirements. Developed an understanding of web scraping
+methodologies, data manipulation, and automation contributing to the success of data-driven projects.
+
+Projects
+Dynamic Review Scraper API - Python, Selenium, Cohere API, Flask
+Source Code
+• Developed an API server for extracting product reviews from platforms by dynamically identifying review-specific CSS
+elements using LLM integration (Cohere API). Implemented pagination handling to retrieve complete reviews data.
+Designed a GET API endpoint returning a JSON response with total reviews and detailed data, supporting scalability
+and easy integration.
+Smart India Hackathon: ML-Based CAPTCHA - Python, Flask, Scikit-Learn
+Source Code
+• Developed a machine learning-based solution for CAPTCHA refinement aimed at differentiating between bots and
+humans for enhanced security in UIDAI portals. The solution passively captures environmental and behavioral
+parameters (e.g., mouse movements, typing patterns) through the browser and analyzes the data using a supervised
+learning model (Random Forest). Designed a mock website with embedded data collection scripts and
+trained a model to classify interactions as human or bot with high accuracy.
+TourMate - Flutter, Python, MongoDB, TensorFlow, Maps API
+Source Code
+• Programmed a comprehensive travel planning app that assists users in creating optimized itineraries for 75 tourist
+destinations. Utilized Graph Principles and Clustering Algorithms to recommend the best routes and prioritize
+must-see locations within 20 kilometers of a city. Integrated Google Maps API to optimize routes and saves 25% time
+of a user in travelling and planning a holiday.
+
+Technical Skills
+Coursework: Data Structures, Algorithm Design, Operating Systems, Database Systems, Computer Networks,
+OOP, Data Science, Machine Learning, Big Data Analytics, NLP, Edge Computing, DevOps, MLOps, NoSQL
+Languages: C++, Python, C, Java, HTML, CSS, Dart
+Databases: MySQL, MongoDB, Neo4j, Cassandra
+Tools & Frameworks: Django, Flask, PyTorch, Tensorflow, Git, Selenium, Flutter, Android Studio
+
+Problem Solving and Certifications
+•
+
+Solved 450+ DSA problems on GeekForGeeks honing problem-solving skills and mastering various algorithms and
+data structures essential for software development. Profile
+
+•
+
+Achieved a contest rating 1450 on LeetCode placed among top 35% contestants at a Global Level. Profile
+
+•
+
+Secured Problem Solving, Python and MySQL (Basic) Certificate on HackerRank. Profile
+
+•
+
+Received Machine Learning Specialization Certification by Stanford University, comprising three modules:
+Supervised Learning, Unsupervised Learning, and Advanced Learning Algorithms.
+
+•
+
+Received Natural Language Processing Specialization Certification by Stanford University, comprising four
+modules: Classification and Vector Spaces, Probabilistic Models, Sequence Models and Attention Models.
+
+Leadership and Extra-Curricular
+•
+
+Entrepreneurship Development Cell - Head of Logistics - Official Business Cell in College. Hosted Finance and
+Tech related events for 350+ members.
+
+

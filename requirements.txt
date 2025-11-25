@@ -1,0 +1,14 @@
+Django>=4.2
+mongoengine>=0.28.0
+pymongo>=4.4.0
+gunicorn
+django-widget-tweaks
+numpy
+sentence-transformers
+faiss-cpu
+tqdm
+cohere
+python-dotenv
+sentence-transformers>=2.2.0
+PyPDF2
+pdfplumber

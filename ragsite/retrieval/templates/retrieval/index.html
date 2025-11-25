@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RAG — Upload & Query</title>
+  </head>
+  <body>
+    <h1>Upload Document</h1>
+    <form id="uploadForm">
+      Title: <input type="text" id="title" required/><br/>
+      File: <input type="file" id="fileInput" required/><br/>
+      <button type="submit">Upload</button>
+    </form>
+
+    <div id="uploadResult"></div>
+
+    <h2>Index Uploaded File</h2>
+    <input type="text" id="indexPath" placeholder="File path returned from upload" style="width:500px"/>
+    <input type="text" id="docId" placeholder="doc_id" />
+    <button id="indexBtn">Index Document</button>
+    <div id="indexResult"></div>
+
+    <h2>Ask a question</h2>
+    <input type="text" id="queryInput" placeholder="What do you want to know?" style="width:500px"/>
+    <button id="queryBtn">Ask</button>
+    <div id="answer"></div>
+
+    <script>
+      document.getElementById("uploadForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const title = document.getElementById("title").value;
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+        if (!file) { alert("Choose a file"); return; }
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("file", file);
+        const resp = await fetch("/upload/", { method: "POST", body: formData });
+        const j = await resp.json();
+        document.getElementById("uploadResult").innerText = JSON.stringify(j);
+        if (j.file_path) {
+          document.getElementById("indexPath").value = j.file_path;
+          if (j.doc_id) document.getElementById("docId").value = j.doc_id;
+        }
+      };
+
+      document.getElementById("indexBtn").onclick = async () => {
+        const path = document.getElementById("indexPath").value;
+        const docId = document.getElementById("docId").value;
+        if (!path) { alert("Provide file path"); return; }
+        const resp = await fetch("/index_document/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file_path: path, title: "", doc_id: docId })
+        });
+        const j = await resp.json();
+        document.getElementById("indexResult").innerText = JSON.stringify(j);
+      };
+
+      document.getElementById("queryBtn").onclick = async () => {
+        const q = document.getElementById("queryInput").value;
+        if (!q) { alert("Write a query"); return; }
+        const resp = await fetch("/query/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q, top_k: 3 })
+        });
+        const j = await resp.json();
+        document.getElementById("answer").innerHTML = "<h3>Answer</h3><pre>" + (j.answer||"") + "</pre><h4>Sources</h4><pre>" + JSON.stringify(j.sources, null, 2) + "</pre>";
+      };
+    </script>
+  </body>
+</html>

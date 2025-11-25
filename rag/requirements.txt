@@ -1,4 +1,0 @@
-sentence-transformers>=2.2.0
-faiss-cpu
-numpy
-tqdm
