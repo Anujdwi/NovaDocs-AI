@@ -1,8 +1,8 @@
 """Batch indexer that reads archive files, chunks them, batches embeddings using Embedder,
- and builds a FAISS index while persisting metadata to SQLite.
+ and builds a FAISS IndexIDMap with sequential vector IDs (matches UI behavior).
 
 Usage example:
-  python batch_indexer.py --archive "d:\\DocExtract\\archive" --db "metadata.db" --index "faiss_index.bin"
+  python batch_indexer.py --archive "d:\\DocExtract\\archive" --db "metadata.pkl" --index "faiss_index.bin"
 """
 import os
 import argparse
@@ -14,7 +14,7 @@ import faiss
 
 from utils import list_text_files, chunk_text
 from embedder import Embedder
-# NOTE: removed SQLite persistence. Metadata will be saved as a pickle file.
+# NOTE: Metadata saved as pickle file with vector_id field in each record.
 
 
 DEFAULT_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
@@ -28,12 +28,12 @@ def batch_index(archive_dir: str, db_path: str = 'metadata.pkl', index_path: str
     embedder = Embedder(model_name=model_name)
 
     # We'll collect vectors in batches and add to FAISS incrementally.
-    vectors_list = []
     meta_buffer = []
     metadata = []
 
     dim = None
     index = None
+    next_vector_id = 0  # Track sequential vector IDs
 
     for f in tqdm(files, desc='Files'):
         try:
@@ -47,28 +47,50 @@ def batch_index(archive_dir: str, db_path: str = 'metadata.pkl', index_path: str
             # when buffer reaches batch_size, embed and add to index
             if len(meta_buffer) >= batch_size:
                 texts = [m['text'] for m in meta_buffer]
-                vectors = embedder.encode(texts, batch_size=batch_size)
+                vectors = embedder.encode(texts, batch_size=batch_size).astype('float32')
                 # normalize for cosine similarity
                 faiss.normalize_L2(vectors)
 
                 if index is None:
                     dim = vectors.shape[1]
-                    index = faiss.IndexFlatIP(dim)
-                index.add(vectors)
-                # collect metadata in the same order vectors are added
-                metadata.extend(meta_buffer)
+                    # Create IndexIDMap to support vector IDs (matches UI behavior)
+                    flat_index = faiss.IndexFlatIP(dim)
+                    index = faiss.IndexIDMap(flat_index)
+
+                # Assign sequential vector IDs
+                n = vectors.shape[0]
+                ids = np.arange(next_vector_id, next_vector_id + n, dtype='int64')
+
+                # Add vectors with IDs
+                index.add_with_ids(vectors, ids)
+
+                # Add vector_id to each metadata record (matches UI behavior)
+                for j, m in enumerate(meta_buffer):
+                    m['vector_id'] = int(ids[j])
+                    metadata.append(m)
+
+                next_vector_id += n
                 meta_buffer = []
 
     # flush remaining
     if meta_buffer:
         texts = [m['text'] for m in meta_buffer]
-        vectors = embedder.encode(texts, batch_size=max(1, len(texts)))
+        vectors = embedder.encode(texts, batch_size=max(1, len(texts))).astype('float32')
         faiss.normalize_L2(vectors)
         if index is None:
             dim = vectors.shape[1]
-            index = faiss.IndexFlatIP(dim)
-    index.add(vectors)
-    metadata.extend(meta_buffer)
+            flat_index = faiss.IndexFlatIP(dim)
+            index = faiss.IndexIDMap(flat_index)
+
+        n = vectors.shape[0]
+        ids = np.arange(next_vector_id, next_vector_id + n, dtype='int64')
+        index.add_with_ids(vectors, ids)
+
+        for j, m in enumerate(meta_buffer):
+            m['vector_id'] = int(ids[j])
+            metadata.append(m)
+
+        next_vector_id += n
 
     if index is None:
         print('No data indexed.')

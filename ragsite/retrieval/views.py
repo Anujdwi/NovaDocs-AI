@@ -38,6 +38,23 @@ except Exception:
     get_answer_from_documents = None
     chunk_text = None
 
+# --- Try to import PDF helpers (they may be added to rag/utils.py) ---
+try:
+    from rag.utils import extract_text_from_pdf, sanitize_text_for_metadata
+except Exception:
+    # fallback implementations (safe) if rag.utils lacks them
+    def extract_text_from_pdf(path: str) -> str:
+        # best-effort: return empty so caller falls back to file read
+        print(f"[warning] extract_text_from_pdf not available for {path}")
+        return ""
+
+    def sanitize_text_for_metadata(t: str, max_len: int = 1000) -> str:
+        if not isinstance(t, str):
+            return ""
+        s = t.replace("\x00", " ")
+        s = " ".join(s.split())
+        return s[:max_len]
+
 # --- faiss / numpy ---
 import faiss
 import numpy as np
@@ -197,10 +214,21 @@ def index_document(request):
     if not os.path.exists(file_path):
         return JsonResponse({"error": "file not found", "file_path": file_path}, status=404)
 
-    # read file content (text files expected)
+    # read file content: use PDF extractor for PDFs, otherwise read text
     try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
-            raw = fh.read()
+        raw = ""
+        if file_path.lower().endswith(".pdf"):
+            raw = extract_text_from_pdf(file_path) or ""
+            # If PDF extraction returned nothing, fallback to raw read attempt (best-effort)
+            if not raw:
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
+                        raw = fh.read()
+                except Exception:
+                    raw = ""
+        else:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
+                raw = fh.read()
     except Exception as ex:
         return JsonResponse({"error": "failed to read file", "details": str(ex)}, status=500)
 
@@ -263,14 +291,14 @@ def index_document(request):
             tb = traceback.format_exc()
             return JsonResponse({"error": "faiss_add_failed", "details": str(ex), "trace": tb}, status=500)
 
-        # append metadata records
+        # append metadata records (sanitize excerpts)
         for j, txt in enumerate(batch_texts):
             meta = {
                 "vector_id": int(ids[j]),
                 "doc_path": file_path,
                 "title": title or os.path.basename(file_path),
                 "chunk_index": i + j,
-                "text": txt
+                "text": sanitize_text_for_metadata(txt)
             }
             metadata.append(meta)
             added += 1
@@ -337,7 +365,16 @@ def query_view(request):
     distances = D[0].tolist()
 
     metadata = load_metadata()
-    meta_by_vid = {int(m["vector_id"]): m for m in metadata}
+
+    # build mapping safely (skip broken metadata entries)
+    meta_by_vid = {}
+    for idx_i, m in enumerate(metadata):
+        try:
+            vid = int(m["vector_id"])
+        except Exception:
+            print(f"Warning: metadata entry {idx_i} missing/invalid 'vector_id'; skipping")
+            continue
+        meta_by_vid[vid] = m
 
     sources = []
     for pos, vid in enumerate(vector_ids):
@@ -359,7 +396,40 @@ def query_view(request):
             answer = "LLM client not available"
         else:
             doc_texts = [s["excerpt"] for s in sources]
-            answer = get_answer_from_documents(question=query, documents=doc_texts)
+
+            raw_answer = get_answer_from_documents(question=query, documents=doc_texts)
+
+            # normalize answer to plain string for UI
+            try:
+                if isinstance(raw_answer, str):
+                    answer = raw_answer
+                elif isinstance(raw_answer, dict):
+                    # try common keys
+                    answer = None
+                    for key in ("text", "answer", "content", "output"):
+                        if key in raw_answer and isinstance(raw_answer[key], str):
+                            answer = raw_answer[key]
+                            break
+                    if answer is None:
+                        # last resort: attempt to extract nested textual content
+                        if "choices" in raw_answer and isinstance(raw_answer["choices"], list) and raw_answer["choices"]:
+                            ch = raw_answer["choices"][0]
+                            if isinstance(ch, dict) and "text" in ch:
+                                answer = ch["text"]
+                        if answer is None:
+                            answer = str(raw_answer)
+                elif isinstance(raw_answer, list):
+                    answer = " ".join(str(x) for x in raw_answer)
+                else:
+                    # object-like responses
+                    if hasattr(raw_answer, "text"):
+                        answer = getattr(raw_answer, "text")
+                    elif hasattr(raw_answer, "content"):
+                        answer = str(getattr(raw_answer, "content"))
+                    else:
+                        answer = str(raw_answer)
+            except Exception:
+                answer = str(raw_answer)
     except Exception as ex:
         answer = f"LLM call failed: {str(ex)}"
 

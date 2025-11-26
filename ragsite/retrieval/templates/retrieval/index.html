@@ -3,71 +3,481 @@
   <head>
     <meta charset="utf-8" />
     <title>RAG — Upload & Query</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 40px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .header p {
+        font-size: 1.1em;
+        opacity: 0.95;
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .card h2 {
+        font-size: 1.4em;
+        color: #333;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 600;
+        font-size: 0.95em;
+      }
+
+      .form-group input[type="text"],
+      .form-group input[type="file"],
+      .form-group button {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: all 0.3s ease;
+      }
+
+      .form-group input[type="text"]:focus,
+      .form-group input[type="file"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-group button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      .form-group button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .result-message {
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.95em;
+        display: none;
+      }
+
+      .result-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+      }
+
+      .result-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+      }
+
+      .query-section {
+        grid-column: 1 / -1;
+      }
+
+      .query-input-wrapper {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .query-input-wrapper input {
+        flex: 1;
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1em;
+      }
+
+      .query-input-wrapper input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .query-input-wrapper button {
+        padding: 14px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .query-input-wrapper button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .query-input-wrapper button:active {
+        transform: translateY(0);
+      }
+
+      #answer {
+        grid-column: 1 / -1;
+        display: none;
+      }
+
+      #answer.show {
+        display: block;
+      }
+
+      .answer-box {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .answer-content {
+        margin-bottom: 30px;
+      }
+
+      .answer-content h3 {
+        font-size: 1.4em;
+        color: #333;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .answer-text {
+        font-size: 1.05em;
+        line-height: 1.8;
+        color: #555;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+
+      .sources-section h4 {
+        font-size: 1.2em;
+        color: #333;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .sources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+
+      .source-card {
+        background: #f8f9ff;
+        border: 2px solid #e0e7ff;
+        border-radius: 10px;
+        padding: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .source-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.15);
+        transform: translateY(-3px);
+      }
+
+      .source-card .title {
+        font-weight: 600;
+        color: #667eea;
+        font-size: 0.95em;
+        margin-bottom: 10px;
+        word-break: break-word;
+      }
+
+      .source-card .excerpt {
+        color: #666;
+        font-size: 0.9em;
+        line-height: 1.6;
+        margin-bottom: 10px;
+        max-height: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .source-card .score {
+        font-size: 0.85em;
+        color: #999;
+        display: flex;
+        justify-content: space-between;
+        padding-top: 10px;
+        border-top: 1px solid #ddd;
+      }
+
+      @media (max-width: 900px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+
+        .header h1 {
+          font-size: 2em;
+        }
+
+        .sources-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+        }
+
+        .card {
+          padding: 20px;
+        }
+
+        .header h1 {
+          font-size: 1.5em;
+        }
+
+        .query-input-wrapper {
+          flex-direction: column;
+        }
+
+        .query-input-wrapper button {
+          width: 100%;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Upload Document</h1>
-    <form id="uploadForm">
-      Title: <input type="text" id="title" required/><br/>
-      File: <input type="file" id="fileInput" required/><br/>
-      <button type="submit">Upload</button>
-    </form>
+    <div class="container">
+      <div class="header">
+        <h1>📚 RAG Document Assistant</h1>
+        <p>Upload documents, index them, and ask intelligent questions</p>
+      </div>
 
-    <div id="uploadResult"></div>
+      <div class="content">
+        <div class="card">
+          <h2>📤 Upload Document</h2>
+          <form id="uploadForm">
+            <div class="form-group">
+              <label for="title">Document Title</label>
+              <input type="text" id="title" placeholder="e.g., AWS Case Study" required/>
+            </div>
+            <div class="form-group">
+              <label for="fileInput">Choose File</label>
+              <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx" required/>
+            </div>
+            <div class="form-group">
+              <button type="submit">Upload Document</button>
+            </div>
+          </form>
+          <div id="uploadResult" class="result-message"></div>
+        </div>
 
-    <h2>Index Uploaded File</h2>
-    <input type="text" id="indexPath" placeholder="File path returned from upload" style="width:500px"/>
-    <input type="text" id="docId" placeholder="doc_id" />
-    <button id="indexBtn">Index Document</button>
-    <div id="indexResult"></div>
+        <div class="card">
+          <h2>🔍 Index Document</h2>
+          <div class="form-group">
+            <label for="indexPath">File Path</label>
+            <input type="text" id="indexPath" placeholder="Returned from upload..." />
+          </div>
+          <div class="form-group">
+            <label for="docId">Document ID (optional)</label>
+            <input type="text" id="docId" placeholder="auto-generated if empty" />
+          </div>
+          <div class="form-group">
+            <button id="indexBtn">Index Document</button>
+          </div>
+          <div id="indexResult" class="result-message"></div>
+        </div>
+      </div>
 
-    <h2>Ask a question</h2>
-    <input type="text" id="queryInput" placeholder="What do you want to know?" style="width:500px"/>
-    <button id="queryBtn">Ask</button>
-    <div id="answer"></div>
+      <div class="card query-section">
+        <h2>❓ Ask a Question</h2>
+        <div class="query-input-wrapper">
+          <input type="text" id="queryInput" placeholder="What do you want to know about the documents?" />
+          <button id="queryBtn">Search & Answer</button>
+        </div>
+      </div>
+
+      <div id="answer"></div>
+    </div>
 
     <script>
       document.getElementById("uploadForm").onsubmit = async (e) => {
         e.preventDefault();
+        const resultDiv = document.getElementById("uploadResult");
+        resultDiv.classList.remove("success", "error");
+        
         const title = document.getElementById("title").value;
         const fileInput = document.getElementById("fileInput");
         const file = fileInput.files[0];
         if (!file) { alert("Choose a file"); return; }
+        
         const formData = new FormData();
         formData.append("title", title);
         formData.append("file", file);
-        const resp = await fetch("/upload/", { method: "POST", body: formData });
-        const j = await resp.json();
-        document.getElementById("uploadResult").innerText = JSON.stringify(j);
-        if (j.file_path) {
-          document.getElementById("indexPath").value = j.file_path;
-          if (j.doc_id) document.getElementById("docId").value = j.doc_id;
+        
+        try {
+          const resp = await fetch("/upload/", { method: "POST", body: formData });
+          const j = await resp.json();
+          
+          if (j.status === "uploaded") {
+            resultDiv.classList.add("success");
+            resultDiv.innerHTML = `✓ File uploaded successfully! Path: ${j.file_path}`;
+            document.getElementById("indexPath").value = j.file_path;
+            if (j.doc_id) document.getElementById("docId").value = j.doc_id;
+            document.getElementById("uploadForm").reset();
+          } else {
+            resultDiv.classList.add("error");
+            resultDiv.innerHTML = `✗ Upload failed: ${j.error || "Unknown error"}`;
+          }
+        } catch (err) {
+          resultDiv.classList.add("error");
+          resultDiv.innerHTML = `✗ Error: ${err.message}`;
         }
       };
 
       document.getElementById("indexBtn").onclick = async () => {
+        const resultDiv = document.getElementById("indexResult");
+        resultDiv.classList.remove("success", "error");
+        
         const path = document.getElementById("indexPath").value;
         const docId = document.getElementById("docId").value;
         if (!path) { alert("Provide file path"); return; }
-        const resp = await fetch("/index_document/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file_path: path, title: "", doc_id: docId })
-        });
-        const j = await resp.json();
-        document.getElementById("indexResult").innerText = JSON.stringify(j);
+        
+        try {
+          const resp = await fetch("/index_document/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_path: path, title: "", doc_id: docId })
+          });
+          const j = await resp.json();
+          
+          if (j.status === "indexed") {
+            resultDiv.classList.add("success");
+            resultDiv.innerHTML = `✓ Document indexed successfully! Added ${j.chunks_added} chunks to the knowledge base.`;
+          } else {
+            resultDiv.classList.add("error");
+            resultDiv.innerHTML = `✗ Indexing failed: ${j.error || "Unknown error"}`;
+          }
+        } catch (err) {
+          resultDiv.classList.add("error");
+          resultDiv.innerHTML = `✗ Error: ${err.message}`;
+        }
       };
 
       document.getElementById("queryBtn").onclick = async () => {
         const q = document.getElementById("queryInput").value;
         if (!q) { alert("Write a query"); return; }
-        const resp = await fetch("/query/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q, top_k: 3 })
-        });
-        const j = await resp.json();
-        document.getElementById("answer").innerHTML = "<h3>Answer</h3><pre>" + (j.answer||"") + "</pre><h4>Sources</h4><pre>" + JSON.stringify(j.sources, null, 2) + "</pre>";
+        
+        const answerDiv = document.getElementById("answer");
+        answerDiv.innerHTML = '<div class="answer-box"><p style="text-align: center; color: #667eea;">⏳ Searching documents and generating answer...</p></div>';
+        answerDiv.classList.add("show");
+        
+        try {
+          const resp = await fetch("/query/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q, top_k: 3 })
+          });
+          const j = await resp.json();
+          
+          if (j.error) {
+            answerDiv.innerHTML = `<div class="answer-box"><div style="color: #721c24; background: #f8d7da; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb;">✗ Error: ${j.error}</div></div>`;
+          } else {
+            const answer = (j.answer || "No answer generated").trim();
+            let sourcesHTML = "";
+            
+            if (j.sources && j.sources.length > 0) {
+              sourcesHTML = "<div class='sources-section'><h4>📖 Source Documents</h4><div class='sources-grid'>";
+              j.sources.forEach((source, idx) => {
+                const excerpt = (source.excerpt || "").substring(0, 150);
+                const score = ((source.score || 0) * 100).toFixed(1);
+                sourcesHTML += `
+                  <div class="source-card">
+                    <div class="title">${idx + 1}. ${source.title || "Untitled"}</div>
+                    <div class="excerpt">"${excerpt}..."</div>
+                    <div class="score">
+                      <span>Relevance: ${score}%</span>
+                    </div>
+                  </div>
+                `;
+              });
+              sourcesHTML += "</div></div>";
+            }
+            
+            answerDiv.innerHTML = `
+              <div class="answer-box">
+                <div class="answer-content">
+                  <h3>💡 Answer</h3>
+                  <div class="answer-text">${escapeHtml(answer)}</div>
+                </div>
+                ${sourcesHTML}
+              </div>
+            `;
+          }
+        } catch (err) {
+          answerDiv.innerHTML = `<div class="answer-box"><div style="color: #721c24; background: #f8d7da; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb;">✗ Error: ${err.message}</div></div>`;
+        }
       };
+
+      function escapeHtml(text) {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+      }
     </script>
   </body>
 </html>

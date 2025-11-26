@@ -1,6 +1,7 @@
 import os
 from typing import List
-
+import pdfplumber
+from PyPDF2 import PdfReader
 
 def list_text_files(folder: str) -> List[str]:
     """Recursively list .txt files in folder."""
@@ -43,3 +44,52 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[st
     if cur:
         chunks.append(' '.join(cur))
     return chunks
+
+
+def extract_text_from_pdf(path: str) -> str:
+    """
+    Extract text from a PDF file path.
+    Tries pdfplumber first (better), then PyPDF2 as fallback.
+    Returns empty string on failure.
+    """
+    try:
+        # prefer pdfplumber if installed
+        try:
+            with pdfplumber.open(path) as pdf:
+                pages = []
+                for p in pdf.pages:
+                    try:
+                        txt = p.extract_text()
+                        if txt:
+                            pages.append(txt)
+                    except Exception:
+                        continue
+                return "\n\n".join(pages).strip()
+        except Exception:
+            # fallback to PyPDF2
+            reader = PdfReader(path)
+            pages = []
+            for p in reader.pages:
+                try:
+                    txt = p.extract_text() or ""
+                    pages.append(txt)
+                except Exception:
+                    pages.append("")
+            return "\n\n".join(pages).strip()
+    except Exception as e:
+        # log for debugging and return empty
+        print(f"[extract_text_from_pdf] failed for {path}: {e}")
+        return ""
+
+def sanitize_text_for_metadata(t: str, max_len: int = 1000) -> str:
+    """
+    Remove nulls, collapse whitespace, and truncate for storing in metadata excerpts.
+    """
+    if not isinstance(t, str):
+        return ""
+    s = t.replace("\x00", " ")
+    # collapse all whitespace to single spaces and strip
+    s = " ".join(s.split())
+    if max_len and len(s) > max_len:
+        return s[:max_len]
+    return s
